@@ -5,7 +5,7 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-kku-gold rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-kku-maroon">KKU</span>
+              <span className="text-2xl font-bold text-kku-maroon">SEAI</span>
             </div>
             <div>
               <h1 className="text-2xl font-bold">YOLO Detection System</h1>
