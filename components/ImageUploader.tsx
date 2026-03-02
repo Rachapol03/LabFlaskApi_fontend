@@ -19,14 +19,8 @@ interface Props {
   onLoadingChange: (loading: boolean) => void
 }
 
-// const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-
+// ✅ ประกาศ URL ไว้ข้างนอก โดยดึงจาก Environment Variable ใน Vercel
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:2569";
-const response = await axios.post(`${API_URL}/predict`, formData, {
-  headers: {
-    'ngrok-skip-browser-warning': 'true' // แถม: ใส่ไว้เพื่อกันหน้า Warning ของ ngrok ครับ
-  }
-});
 
 export default function ImageUploader({ onPrediction, onError, onLoadingChange }: Props) {
   const [dragActive, setDragActive] = useState(false)
@@ -65,14 +59,12 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
   // ตรวจสอบและแสดง Preview รูปภาพ
   const handleFile = (file: File) => {
-    // ตรวจสอบประเภทไฟล์
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg']
     if (!validTypes.includes(file.type)) {
       onError('กรุณาอัปโหลดไฟล์ภาพประเภท PNG, JPG หรือ JPEG เท่านั้น')
       return
     }
 
-    // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
     if (file.size > 10 * 1024 * 1024) {
       onError('ไฟล์ภาพมีขนาดใหญ่เกินไป (สูงสุด 10MB)')
       return
@@ -80,7 +72,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
     setSelectedFile(file)
     
-    // สร้าง Preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreview(reader.result as string)
@@ -88,7 +79,7 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
     reader.readAsDataURL(file)
   }
 
-  // ส่งไฟล์ไปยัง Backend API
+  // ✅ ส่งไฟล์ไปยัง Backend API (รวม Logic ไว้ในนี้)
   const handleUpload = async () => {
     if (!selectedFile) {
       onError('กรุณาเลือกไฟล์ภาพก่อน')
@@ -108,20 +99,19 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+            // 🔥 สำคัญ: ใส่ Header นี้เพื่อข้ามหน้า Warning ของ ngrok
+            'ngrok-skip-browser-warning': 'true', 
           },
-          timeout: 30000, // 30 วินาที
+          timeout: 60000, // เพิ่มเวลาเป็น 60 วินาทีสำหรับรูปขนาดใหญ่
         }
       )
 
       onPrediction(response.data)
     } catch (error: any) {
-      // จัดการ Error ตามประเภท
       if (error.code === 'ERR_NETWORK') {
-        onError('ไม่สามารถเชื่อมต่อกับ Backend API ได้ กรุณาตรวจสอบว่า Flask server ทำงานอยู่')
+        onError('ไม่สามารถเชื่อมต่อกับ Backend ได้ (เช็ค ngrok หรือ CORS)')
       } else if (error.response) {
-        onError(`เกิดข้อผิดพลาดจาก Server: ${error.response.status}`)
-      } else if (error.request) {
-        onError('ส่งคำขอไปยัง Server แต่ไม่ได้รับการตอบกลับ (อาจเป็น CORS Error)')
+        onError(`Error จาก Server: ${error.response.status}`)
       } else {
         onError(`เกิดข้อผิดพลาด: ${error.message}`)
       }
@@ -131,7 +121,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
     }
   }
 
-  // ล้างไฟล์ที่เลือก
   const handleReset = () => {
     setPreview(null)
     setSelectedFile(null)
@@ -142,9 +131,8 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
   return (
     <div className="space-y-4">
-      {/* Upload Zone */}
       <div
-        className={`upload-zone ${dragActive ? 'upload-zone-active' : ''}`}
+        className={`upload-zone ${dragActive ? 'upload-zone-active' : ''} border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${preview ? 'border-kku-maroon bg-red-50' : 'border-gray-300 hover:border-kku-maroon'}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -170,19 +158,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
           </div>
         ) : (
           <div className="space-y-3">
-            <svg
-              className="mx-auto h-16 w-16 text-gray-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
             <div className="text-gray-600">
               <p className="text-lg font-semibold">คลิกเพื่อเลือกรูปภาพ</p>
               <p className="text-sm">หรือลากไฟล์มาวางที่นี่</p>
@@ -192,23 +167,20 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="flex gap-3">
         <button
           onClick={handleUpload}
           disabled={!selectedFile}
-          className="btn-primary flex-1"
+          className="bg-kku-maroon hover:bg-red-800 text-white font-bold py-3 px-6 rounded-lg flex-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <span className="flex items-center justify-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            ตรวจจับวัตถุ
-          </span>
+          ตรวจจับวัตถุ
         </button>
         
         {preview && (
-          <button onClick={handleReset} className="btn-secondary">
+          <button 
+            onClick={handleReset} 
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition-colors"
+          >
             ล้าง
           </button>
         )}
