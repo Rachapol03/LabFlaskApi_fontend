@@ -21,7 +21,12 @@ interface Props {
 
 // const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-const API_URL = 'http://127.0.0.1:2569'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:2569";
+const response = await axios.post(`${API_URL}/predict`, formData, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true' // แถม: ใส่ไว้เพื่อกันหน้า Warning ของ ngrok ครับ
+  }
+});
 
 export default function ImageUploader({ onPrediction, onError, onLoadingChange }: Props) {
   const [dragActive, setDragActive] = useState(false)
